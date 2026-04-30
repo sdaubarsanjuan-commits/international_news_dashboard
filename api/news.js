@@ -3,35 +3,35 @@ export default async function handler(req, res) {
 
   const feeds = {
     Global: [
-      { url: 'https://feeds.reuters.com/reuters/businessNews', source: 'Reuters' },
       { url: 'https://www.cnbc.com/id/10001147/device/rss/rss.html', source: 'CNBC' },
-      { url: 'https://feeds.nbcnews.com/nbcnews/public/business', source: 'NBC News' },
-      { url: 'https://rss.nytimes.com/services/xml/rss/nyt/Business.xml', source: 'NY Times Business' },
-      { url: 'https://feeds.npr.org/1006/rss.xml', source: 'NPR Business' },
+      { url: 'https://search.cnbc.com/rs/search/combinedcms/view.xml?partnerId=wrss01&id=100727362', source: 'CNBC World' },
+      { url: 'https://www.investing.com/rss/news.rss', source: 'Investing.com' },
+      { url: 'https://www.marketwatch.com/rss/topstories', source: 'MarketWatch' },
+      { url: 'https://feeds.content.dowjones.io/public/rss/mw_realtimeheadlines', source: 'MarketWatch' },
     ],
     Asia: [
-      { url: 'https://feeds.reuters.com/reuters/AsiaNews', source: 'Reuters Asia' },
       { url: 'https://www.cnbc.com/id/19832390/device/rss/rss.html', source: 'CNBC Asia' },
-      { url: 'https://feeds.npr.org/1006/rss.xml', source: 'NPR Business' },
-      { url: 'https://rss.nytimes.com/services/xml/rss/nyt/Business.xml', source: 'NY Times Business' },
+      { url: 'https://search.cnbc.com/rs/search/combinedcms/view.xml?partnerId=wrss01&id=19832390', source: 'CNBC Asia' },
+      { url: 'https://www.investing.com/rss/news_301.rss', source: 'Investing.com Asia' },
+      { url: 'https://www.marketwatch.com/rss/topstories', source: 'MarketWatch' },
     ],
     Americas: [
-      { url: 'https://feeds.reuters.com/reuters/americasNews', source: 'Reuters Americas' },
       { url: 'https://www.cnbc.com/id/10000664/device/rss/rss.html', source: 'CNBC US' },
-      { url: 'https://feeds.nbcnews.com/nbcnews/public/business', source: 'NBC News' },
-      { url: 'https://feeds.npr.org/1006/rss.xml', source: 'NPR Business' },
+      { url: 'https://search.cnbc.com/rs/search/combinedcms/view.xml?partnerId=wrss01&id=10000664', source: 'CNBC US' },
+      { url: 'https://www.marketwatch.com/rss/topstories', source: 'MarketWatch' },
+      { url: 'https://www.investing.com/rss/news_25.rss', source: 'Investing.com Americas' },
     ],
     Europe: [
-      { url: 'https://feeds.reuters.com/reuters/europeanNews', source: 'Reuters Europe' },
       { url: 'https://www.cnbc.com/id/19794221/device/rss/rss.html', source: 'CNBC Europe' },
-      { url: 'https://rss.nytimes.com/services/xml/rss/nyt/Business.xml', source: 'NY Times Business' },
-      { url: 'https://feeds.npr.org/1006/rss.xml', source: 'NPR Business' },
+      { url: 'https://search.cnbc.com/rs/search/combinedcms/view.xml?partnerId=wrss01&id=19794221', source: 'CNBC Europe' },
+      { url: 'https://www.investing.com/rss/news_95.rss', source: 'Investing.com Europe' },
+      { url: 'https://www.marketwatch.com/rss/topstories', source: 'MarketWatch' },
     ],
     Africa: [
-      { url: 'https://feeds.reuters.com/reuters/AfricaNews', source: 'Reuters Africa' },
       { url: 'https://allafrica.com/tools/headlines/rdf/business/headlines.rdf', source: 'AllAfrica Business' },
       { url: 'https://www.cnbc.com/id/10001147/device/rss/rss.html', source: 'CNBC' },
-      { url: 'https://feeds.npr.org/1006/rss.xml', source: 'NPR Business' },
+      { url: 'https://www.investing.com/rss/news.rss', source: 'Investing.com' },
+      { url: 'https://www.marketwatch.com/rss/topstories', source: 'MarketWatch' },
     ],
   };
 
@@ -43,7 +43,7 @@ export default async function handler(req, res) {
     for (const match of itemMatches) {
       const item = match[1];
       const title = item.match(/<title><!\[CDATA\[(.*?)\]\]><\/title>/)
-        ?.[1] || item.match(/<title>(.*?)<\/title>/)?.[1] || '';
+        ?.[1] || item.match(/<title>(?:<!\[CDATA\[)?(.*?)(?:\]\]>)?<\/title>/)?.[1] || '';
       const link = item.match(/<link>(.*?)<\/link>/)?.[1]
         || item.match(/<guid[^>]*>(https?:\/\/[^<]+)<\/guid>/)?.[1] || '';
       const description = item.match(/<description><!\[CDATA\[(.*?)\]\]><\/description>/)
@@ -97,10 +97,17 @@ export default async function handler(req, res) {
       )
     );
 
-    let articles = results
-      .filter(r => r.status === 'fulfilled')
-      .flatMap(r => r.value)
-      .slice(0, 12);
+    // Mix articles from different sources
+    const bySource = results
+      .filter(r => r.status === 'fulfilled' && r.value.length > 0)
+      .map(r => r.value);
+
+    let articles = [];
+    const maxPerSource = 4;
+    for (const sourceArticles of bySource) {
+      articles.push(...sourceArticles.slice(0, maxPerSource));
+    }
+    articles = articles.slice(0, 12);
 
     if (articles.length === 0) {
       return res.status(500).json({ error: 'No articles found from RSS feeds' });
