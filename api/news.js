@@ -14,9 +14,9 @@ export default async function handler(req, res) {
       { url: 'https://feeds.reuters.com/reuters/AsiaNews', source: 'Reuters' },
       { url: 'https://www.cnbc.com/id/19832390/device/rss/rss.html', source: 'CNBC' },
       { url: 'https://feeds.bloomberg.com/asia/news.rss', source: 'Bloomberg' },
+      { url: 'https://feeds.bloomberg.com/markets/news.rss', source: 'Bloomberg' },
       { url: 'https://www.ft.com/rss/home/asia-pacific', source: 'Financial Times' },
       { url: 'https://feeds.apnews.com/rss/apf-asiapacific', source: 'AP News' },
-      { url: 'https://feeds.reuters.com/reuters/INbusinessNews', source: 'Reuters India' },
     ],
     Americas: [
       { url: 'https://feeds.reuters.com/reuters/americasNews', source: 'Reuters' },
@@ -31,27 +31,26 @@ export default async function handler(req, res) {
       { url: 'https://www.cnbc.com/id/19794221/device/rss/rss.html', source: 'CNBC' },
       { url: 'https://feeds.bloomberg.com/europe/news.rss', source: 'Bloomberg' },
       { url: 'https://www.ft.com/rss/home/europe', source: 'Financial Times' },
+      { url: 'https://www.ft.com/rss/home/uk', source: 'Financial Times' },
       { url: 'https://feeds.apnews.com/rss/apf-europe', source: 'AP News' },
-      { url: 'https://feeds.reuters.com/reuters/UKBusinessNews', source: 'Reuters UK' },
     ],
     Africa: [
       { url: 'https://feeds.reuters.com/reuters/AfricaNews', source: 'Reuters' },
       { url: 'https://allafrica.com/tools/headlines/rdf/business/headlines.rdf', source: 'AllAfrica Business' },
       { url: 'https://feeds.apnews.com/rss/apf-africa', source: 'AP News' },
-      { url: 'https://feeds.bloomberg.com/africa/news.rss', source: 'Bloomberg' },
-      { url: 'https://www.ft.com/rss/home/africa', source: 'Financial Times' },
+      { url: 'https://www.cnbc.com/id/10001147/device/rss/rss.html', source: 'CNBC' },
+      { url: 'https://www.cnbc.com/id/19832390/device/rss/rss.html', source: 'CNBC' },
       { url: 'https://allafrica.com/tools/headlines/rdf/economy/headlines.rdf', source: 'AllAfrica Economy' },
     ],
   };
 
   const selectedFeeds = feeds[region] || feeds.Global;
 
-  // Keywords to filter out off-topic articles for regional tabs
   const regionKeywords = {
-    Asia: ['asia', 'china', 'japan', 'korea', 'india', 'singapore', 'hong kong', 'taiwan', 'indonesia', 'thailand', 'vietnam', 'malaysia', 'philippines', 'pacific', 'tokyo', 'beijing', 'shanghai', 'asian'],
-    Americas: ['us', 'usa', 'america', 'canada', 'brazil', 'mexico', 'latin', 'wall street', 'federal reserve', 'nasdaq', 'dow', 'new york', 'washington', 'trade', 'tariff'],
-    Europe: ['europe', 'european', 'eu', 'uk', 'britain', 'france', 'germany', 'italy', 'spain', 'london', 'paris', 'berlin', 'ecb', 'euro', 'brexit', 'brussels'],
-    Africa: ['africa', 'african', 'nigeria', 'kenya', 'south africa', 'ghana', 'ethiopia', 'egypt', 'morocco', 'tanzania', 'uganda', 'zimbabwe', 'nairobi', 'lagos', 'cairo'],
+    Asia: ['asia', 'china', 'japan', 'korea', 'india', 'singapore', 'hong kong', 'taiwan', 'indonesia', 'thailand', 'vietnam', 'malaysia', 'philippines', 'pacific', 'tokyo', 'beijing', 'shanghai', 'asian', 'nikkei', 'yen', 'yuan', 'rupee', 'kospi'],
+    Americas: ['us', 'usa', 'america', 'canada', 'brazil', 'mexico', 'latin', 'wall street', 'federal reserve', 'nasdaq', 'dow', 'new york', 'washington', 'tariff', 's&p', 'dollar', 'treasury', 'sec', 'fed'],
+    Europe: ['europe', 'european', 'eu', 'uk', 'britain', 'france', 'germany', 'italy', 'spain', 'london', 'paris', 'berlin', 'ecb', 'euro', 'brexit', 'brussels', 'pound', 'ftse', 'dax', 'dutch', 'swiss', 'nordic'],
+    Africa: ['africa', 'african', 'nigeria', 'kenya', 'south africa', 'ghana', 'ethiopia', 'egypt', 'morocco', 'tanzania', 'uganda', 'zimbabwe', 'nairobi', 'lagos', 'cairo', 'rand', 'naira', 'johannesburg'],
   };
 
   function isRegionRelevant(title, summary, region) {
@@ -94,7 +93,6 @@ export default async function handler(req, res) {
           .replace(/&quot;/g, '"')
           .trim();
 
-        // Skip if not relevant to the region
         if (!isRegionRelevant(cleanTitle, cleanDesc, region)) continue;
 
         let timeAgo = 'Recently';
@@ -142,11 +140,11 @@ export default async function handler(req, res) {
       .filter(r => r.status === 'fulfilled' && r.value.length > 0)
       .map(r => r.value);
 
-    // Take up to 3 articles per source targeting 12 total
+    // Take up to 2 articles per feed, targeting 12 total
     let articles = [];
-    const maxPerSource = 3;
+    const maxPerFeed = 2;
     for (const sourceArticles of bySource) {
-      articles.push(...sourceArticles.slice(0, maxPerSource));
+      articles.push(...sourceArticles.slice(0, maxPerFeed));
     }
     articles = articles.slice(0, 12);
 
