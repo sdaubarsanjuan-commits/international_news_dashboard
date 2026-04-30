@@ -1,34 +1,37 @@
 export default async function handler(req, res) {
   const region = req.query?.region || 'Global';
 
-  // Free RSS feeds by region - all real, active sources
   const feeds = {
     Global: [
       { url: 'https://feeds.reuters.com/reuters/businessNews', source: 'Reuters' },
-      { url: 'https://feeds.bbci.co.uk/news/business/rss.xml', source: 'BBC Business' },
       { url: 'https://www.cnbc.com/id/10001147/device/rss/rss.html', source: 'CNBC' },
-      { url: 'https://feeds.a.dj.com/rss/RSSWorldNews.xml', source: 'Wall Street Journal' },
-      { url: 'https://rss.app/feeds/AP-business.xml', source: 'AP Business' },
+      { url: 'https://feeds.nbcnews.com/nbcnews/public/business', source: 'NBC News' },
+      { url: 'https://rss.nytimes.com/services/xml/rss/nyt/Business.xml', source: 'NY Times Business' },
+      { url: 'https://feeds.npr.org/1006/rss.xml', source: 'NPR Business' },
     ],
     Asia: [
       { url: 'https://feeds.reuters.com/reuters/AsiaNews', source: 'Reuters Asia' },
-      { url: 'https://feeds.bbci.co.uk/news/world/asia/rss.xml', source: 'BBC Asia' },
       { url: 'https://www.cnbc.com/id/19832390/device/rss/rss.html', source: 'CNBC Asia' },
+      { url: 'https://feeds.npr.org/1006/rss.xml', source: 'NPR Business' },
+      { url: 'https://rss.nytimes.com/services/xml/rss/nyt/Business.xml', source: 'NY Times Business' },
     ],
     Americas: [
       { url: 'https://feeds.reuters.com/reuters/americasNews', source: 'Reuters Americas' },
       { url: 'https://www.cnbc.com/id/10000664/device/rss/rss.html', source: 'CNBC US' },
-      { url: 'https://feeds.bbci.co.uk/news/world/us_and_canada/rss.xml', source: 'BBC Americas' },
+      { url: 'https://feeds.nbcnews.com/nbcnews/public/business', source: 'NBC News' },
+      { url: 'https://feeds.npr.org/1006/rss.xml', source: 'NPR Business' },
     ],
     Europe: [
       { url: 'https://feeds.reuters.com/reuters/europeanNews', source: 'Reuters Europe' },
-      { url: 'https://feeds.bbci.co.uk/news/world/europe/rss.xml', source: 'BBC Europe' },
       { url: 'https://www.cnbc.com/id/19794221/device/rss/rss.html', source: 'CNBC Europe' },
+      { url: 'https://rss.nytimes.com/services/xml/rss/nyt/Business.xml', source: 'NY Times Business' },
+      { url: 'https://feeds.npr.org/1006/rss.xml', source: 'NPR Business' },
     ],
     Africa: [
       { url: 'https://feeds.reuters.com/reuters/AfricaNews', source: 'Reuters Africa' },
-      { url: 'https://feeds.bbci.co.uk/news/world/africa/rss.xml', source: 'BBC Africa' },
       { url: 'https://allafrica.com/tools/headlines/rdf/business/headlines.rdf', source: 'AllAfrica Business' },
+      { url: 'https://www.cnbc.com/id/10001147/device/rss/rss.html', source: 'CNBC' },
+      { url: 'https://feeds.npr.org/1006/rss.xml', source: 'NPR Business' },
     ],
   };
 
@@ -48,7 +51,6 @@ export default async function handler(req, res) {
       const pubDate = item.match(/<pubDate>(.*?)<\/pubDate>/)?.[1] || '';
 
       if (title && link && link.startsWith('http')) {
-        // Calculate time ago
         let timeAgo = 'Recently';
         if (pubDate) {
           const diff = Date.now() - new Date(pubDate).getTime();
@@ -59,7 +61,6 @@ export default async function handler(req, res) {
           else timeAgo = `${mins} minute${mins > 1 ? 's' : ''} ago`;
         }
 
-        // Clean up description
         const cleanDesc = description
           .replace(/<[^>]+>/g, '')
           .replace(/&amp;/g, '&')
@@ -77,7 +78,7 @@ export default async function handler(req, res) {
           region,
           summary: cleanDesc || 'Click to read the full story.',
           time: timeAgo,
-          paywall: source.includes('Wall Street Journal') || source.includes('Financial Times'),
+          paywall: false,
         });
       }
     }
