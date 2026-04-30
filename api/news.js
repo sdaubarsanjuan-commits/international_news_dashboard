@@ -11,42 +11,58 @@ export default async function handler(req, res) {
       { url: 'https://www.ft.com/rss/home/uk', source: 'Financial Times' },
     ],
     Asia: [
-      { url: 'https://feeds.reuters.com/reuters/AsiaNews', source: 'Reuters Asia' },
-      { url: 'https://www.cnbc.com/id/19832390/device/rss/rss.html', source: 'CNBC Asia' },
-      { url: 'https://rss.nytimes.com/services/xml/rss/nyt/Business.xml', source: 'New York Times' },
-      { url: 'https://feeds.apnews.com/rss/apf-business', source: 'AP News' },
-      { url: 'https://feeds.bloomberg.com/asia/news.rss', source: 'Bloomberg Asia' },
+      { url: 'https://feeds.reuters.com/reuters/AsiaNews', source: 'Reuters' },
+      { url: 'https://www.cnbc.com/id/19832390/device/rss/rss.html', source: 'CNBC' },
+      { url: 'https://feeds.bloomberg.com/asia/news.rss', source: 'Bloomberg' },
       { url: 'https://www.ft.com/rss/home/asia-pacific', source: 'Financial Times' },
+      { url: 'https://feeds.apnews.com/rss/apf-asiapacific', source: 'AP News' },
+      { url: 'https://feeds.reuters.com/reuters/INbusinessNews', source: 'Reuters India' },
     ],
     Americas: [
-      { url: 'https://feeds.reuters.com/reuters/americasNews', source: 'Reuters Americas' },
-      { url: 'https://www.cnbc.com/id/10000664/device/rss/rss.html', source: 'CNBC US' },
-      { url: 'https://rss.nytimes.com/services/xml/rss/nyt/Business.xml', source: 'New York Times' },
-      { url: 'https://feeds.apnews.com/rss/apf-business', source: 'AP News' },
+      { url: 'https://feeds.reuters.com/reuters/americasNews', source: 'Reuters' },
+      { url: 'https://www.cnbc.com/id/10000664/device/rss/rss.html', source: 'CNBC' },
       { url: 'https://feeds.bloomberg.com/markets/news.rss', source: 'Bloomberg' },
       { url: 'https://www.ft.com/rss/home/us', source: 'Financial Times' },
+      { url: 'https://feeds.apnews.com/rss/apf-business', source: 'AP News' },
+      { url: 'https://rss.nytimes.com/services/xml/rss/nyt/Business.xml', source: 'New York Times' },
     ],
     Europe: [
-      { url: 'https://feeds.reuters.com/reuters/europeanNews', source: 'Reuters Europe' },
-      { url: 'https://www.cnbc.com/id/19794221/device/rss/rss.html', source: 'CNBC Europe' },
-      { url: 'https://rss.nytimes.com/services/xml/rss/nyt/Business.xml', source: 'New York Times' },
-      { url: 'https://feeds.apnews.com/rss/apf-business', source: 'AP News' },
-      { url: 'https://feeds.bloomberg.com/europe/news.rss', source: 'Bloomberg Europe' },
+      { url: 'https://feeds.reuters.com/reuters/europeanNews', source: 'Reuters' },
+      { url: 'https://www.cnbc.com/id/19794221/device/rss/rss.html', source: 'CNBC' },
+      { url: 'https://feeds.bloomberg.com/europe/news.rss', source: 'Bloomberg' },
       { url: 'https://www.ft.com/rss/home/europe', source: 'Financial Times' },
+      { url: 'https://feeds.apnews.com/rss/apf-europe', source: 'AP News' },
+      { url: 'https://feeds.reuters.com/reuters/UKBusinessNews', source: 'Reuters UK' },
     ],
     Africa: [
-      { url: 'https://feeds.reuters.com/reuters/AfricaNews', source: 'Reuters Africa' },
+      { url: 'https://feeds.reuters.com/reuters/AfricaNews', source: 'Reuters' },
       { url: 'https://allafrica.com/tools/headlines/rdf/business/headlines.rdf', source: 'AllAfrica Business' },
-      { url: 'https://www.cnbc.com/id/10001147/device/rss/rss.html', source: 'CNBC' },
-      { url: 'https://feeds.apnews.com/rss/apf-business', source: 'AP News' },
-      { url: 'https://feeds.bloomberg.com/africa/news.rss', source: 'Bloomberg Africa' },
+      { url: 'https://feeds.apnews.com/rss/apf-africa', source: 'AP News' },
+      { url: 'https://feeds.bloomberg.com/africa/news.rss', source: 'Bloomberg' },
       { url: 'https://www.ft.com/rss/home/africa', source: 'Financial Times' },
+      { url: 'https://allafrica.com/tools/headlines/rdf/economy/headlines.rdf', source: 'AllAfrica Economy' },
     ],
   };
 
   const selectedFeeds = feeds[region] || feeds.Global;
 
-  function parseRSS(xml, source) {
+  // Keywords to filter out off-topic articles for regional tabs
+  const regionKeywords = {
+    Asia: ['asia', 'china', 'japan', 'korea', 'india', 'singapore', 'hong kong', 'taiwan', 'indonesia', 'thailand', 'vietnam', 'malaysia', 'philippines', 'pacific', 'tokyo', 'beijing', 'shanghai', 'asian'],
+    Americas: ['us', 'usa', 'america', 'canada', 'brazil', 'mexico', 'latin', 'wall street', 'federal reserve', 'nasdaq', 'dow', 'new york', 'washington', 'trade', 'tariff'],
+    Europe: ['europe', 'european', 'eu', 'uk', 'britain', 'france', 'germany', 'italy', 'spain', 'london', 'paris', 'berlin', 'ecb', 'euro', 'brexit', 'brussels'],
+    Africa: ['africa', 'african', 'nigeria', 'kenya', 'south africa', 'ghana', 'ethiopia', 'egypt', 'morocco', 'tanzania', 'uganda', 'zimbabwe', 'nairobi', 'lagos', 'cairo'],
+  };
+
+  function isRegionRelevant(title, summary, region) {
+    if (region === 'Global') return true;
+    const keywords = regionKeywords[region];
+    if (!keywords) return true;
+    const text = (title + ' ' + summary).toLowerCase();
+    return keywords.some(kw => text.includes(kw));
+  }
+
+  function parseRSS(xml, source, region) {
     const items = [];
     const itemMatches = xml.matchAll(/<item>([\s\S]*?)<\/item>/g);
     for (const match of itemMatches) {
@@ -60,16 +76,6 @@ export default async function handler(req, res) {
       const pubDate = item.match(/<pubDate>(.*?)<\/pubDate>/)?.[1] || '';
 
       if (title && link && link.startsWith('http')) {
-        let timeAgo = 'Recently';
-        if (pubDate) {
-          const diff = Date.now() - new Date(pubDate).getTime();
-          const hours = Math.floor(diff / 3600000);
-          const mins = Math.floor(diff / 60000);
-          if (hours >= 24) timeAgo = `${Math.floor(hours / 24)} days ago`;
-          else if (hours >= 1) timeAgo = `${hours} hour${hours > 1 ? 's' : ''} ago`;
-          else timeAgo = `${mins} minute${mins > 1 ? 's' : ''} ago`;
-        }
-
         const cleanDesc = description
           .replace(/<[^>]+>/g, '')
           .replace(/&amp;/g, '&')
@@ -80,13 +86,34 @@ export default async function handler(req, res) {
           .trim()
           .slice(0, 120);
 
+        const cleanTitle = title
+          .replace(/&amp;/g, '&')
+          .replace(/&lt;/g, '<')
+          .replace(/&gt;/g, '>')
+          .replace(/&apos;/g, "'")
+          .replace(/&quot;/g, '"')
+          .trim();
+
+        // Skip if not relevant to the region
+        if (!isRegionRelevant(cleanTitle, cleanDesc, region)) continue;
+
+        let timeAgo = 'Recently';
+        if (pubDate) {
+          const diff = Date.now() - new Date(pubDate).getTime();
+          const hours = Math.floor(diff / 3600000);
+          const mins = Math.floor(diff / 60000);
+          if (hours >= 24) timeAgo = `${Math.floor(hours / 24)} days ago`;
+          else if (hours >= 1) timeAgo = `${hours} hour${hours > 1 ? 's' : ''} ago`;
+          else timeAgo = `${mins} minute${mins > 1 ? 's' : ''} ago`;
+        }
+
         const isPaywall =
           source === 'New York Times' ||
           source.includes('Bloomberg') ||
           source.includes('Financial Times');
 
         items.push({
-          title: title.replace(/&amp;/g, '&').replace(/&lt;/g, '<').replace(/&gt;/g, '>').trim(),
+          title: cleanTitle,
           url: link.trim(),
           source,
           region,
@@ -107,7 +134,7 @@ export default async function handler(req, res) {
           signal: AbortSignal.timeout(8000),
         })
           .then(r => r.text())
-          .then(xml => parseRSS(xml, source))
+          .then(xml => parseRSS(xml, source, region))
       )
     );
 
@@ -115,9 +142,9 @@ export default async function handler(req, res) {
       .filter(r => r.status === 'fulfilled' && r.value.length > 0)
       .map(r => r.value);
 
-    // Take up to 2 articles per source targeting 12 total
+    // Take up to 3 articles per source targeting 12 total
     let articles = [];
-    const maxPerSource = 2;
+    const maxPerSource = 3;
     for (const sourceArticles of bySource) {
       articles.push(...sourceArticles.slice(0, maxPerSource));
     }
