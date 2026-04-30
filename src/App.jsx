@@ -256,7 +256,7 @@ export default function App() {
             {loading ? 'Loading...' : `${articles.length} stories · ${region}`}
           </p>
           <p style={{ fontSize: '12px', color: '#7a90b0' }}>
-            Reuters · CNBC · NBC News · NPR · NY Times · AllAfrica
+            Reuters · CNBC · AP News · New York Times · AllAfrica
           </p>
         </div>
 
