@@ -3,35 +3,35 @@ export default async function handler(req, res) {
 
   const feeds = {
     Global: [
+      { url: 'https://feeds.reuters.com/reuters/businessNews', source: 'Reuters' },
+      { url: 'https://feeds.reuters.com/reuters/topNews', source: 'Reuters' },
       { url: 'https://www.cnbc.com/id/10001147/device/rss/rss.html', source: 'CNBC' },
-      { url: 'https://search.cnbc.com/rs/search/combinedcms/view.xml?partnerId=wrss01&id=100727362', source: 'CNBC World' },
-      { url: 'https://www.investing.com/rss/news.rss', source: 'Investing.com' },
-      { url: 'https://www.marketwatch.com/rss/topstories', source: 'MarketWatch' },
-      { url: 'https://feeds.content.dowjones.io/public/rss/mw_realtimeheadlines', source: 'MarketWatch' },
+      { url: 'https://rss.nytimes.com/services/xml/rss/nyt/Business.xml', source: 'New York Times' },
+      { url: 'https://rsshub.app/apnews/topics/business', source: 'AP News' },
     ],
     Asia: [
+      { url: 'https://feeds.reuters.com/reuters/AsiaNews', source: 'Reuters Asia' },
       { url: 'https://www.cnbc.com/id/19832390/device/rss/rss.html', source: 'CNBC Asia' },
-      { url: 'https://search.cnbc.com/rs/search/combinedcms/view.xml?partnerId=wrss01&id=19832390', source: 'CNBC Asia' },
-      { url: 'https://www.investing.com/rss/news_301.rss', source: 'Investing.com Asia' },
-      { url: 'https://www.marketwatch.com/rss/topstories', source: 'MarketWatch' },
+      { url: 'https://rss.nytimes.com/services/xml/rss/nyt/Business.xml', source: 'New York Times' },
+      { url: 'https://rsshub.app/apnews/topics/business', source: 'AP News' },
     ],
     Americas: [
+      { url: 'https://feeds.reuters.com/reuters/americasNews', source: 'Reuters Americas' },
       { url: 'https://www.cnbc.com/id/10000664/device/rss/rss.html', source: 'CNBC US' },
-      { url: 'https://search.cnbc.com/rs/search/combinedcms/view.xml?partnerId=wrss01&id=10000664', source: 'CNBC US' },
-      { url: 'https://www.marketwatch.com/rss/topstories', source: 'MarketWatch' },
-      { url: 'https://www.investing.com/rss/news_25.rss', source: 'Investing.com Americas' },
+      { url: 'https://rss.nytimes.com/services/xml/rss/nyt/Business.xml', source: 'New York Times' },
+      { url: 'https://rsshub.app/apnews/topics/business', source: 'AP News' },
     ],
     Europe: [
+      { url: 'https://feeds.reuters.com/reuters/europeanNews', source: 'Reuters Europe' },
       { url: 'https://www.cnbc.com/id/19794221/device/rss/rss.html', source: 'CNBC Europe' },
-      { url: 'https://search.cnbc.com/rs/search/combinedcms/view.xml?partnerId=wrss01&id=19794221', source: 'CNBC Europe' },
-      { url: 'https://www.investing.com/rss/news_95.rss', source: 'Investing.com Europe' },
-      { url: 'https://www.marketwatch.com/rss/topstories', source: 'MarketWatch' },
+      { url: 'https://rss.nytimes.com/services/xml/rss/nyt/Business.xml', source: 'New York Times' },
+      { url: 'https://rsshub.app/apnews/topics/business', source: 'AP News' },
     ],
     Africa: [
+      { url: 'https://feeds.reuters.com/reuters/AfricaNews', source: 'Reuters Africa' },
       { url: 'https://allafrica.com/tools/headlines/rdf/business/headlines.rdf', source: 'AllAfrica Business' },
       { url: 'https://www.cnbc.com/id/10001147/device/rss/rss.html', source: 'CNBC' },
-      { url: 'https://www.investing.com/rss/news.rss', source: 'Investing.com' },
-      { url: 'https://www.marketwatch.com/rss/topstories', source: 'MarketWatch' },
+      { url: 'https://rsshub.app/apnews/topics/business', source: 'AP News' },
     ],
   };
 
@@ -78,7 +78,7 @@ export default async function handler(req, res) {
           region,
           summary: cleanDesc || 'Click to read the full story.',
           time: timeAgo,
-          paywall: false,
+          paywall: source === 'New York Times',
         });
       }
     }
@@ -97,13 +97,12 @@ export default async function handler(req, res) {
       )
     );
 
-    // Mix articles from different sources
     const bySource = results
       .filter(r => r.status === 'fulfilled' && r.value.length > 0)
       .map(r => r.value);
 
     let articles = [];
-    const maxPerSource = 4;
+    const maxPerSource = 3;
     for (const sourceArticles of bySource) {
       articles.push(...sourceArticles.slice(0, maxPerSource));
     }
