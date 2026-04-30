@@ -1,7 +1,3 @@
-export const config = {
-  runtime: 'edge',
-};
-
 const SYSTEM_PROMPT = `You are an international business news aggregator. Your job is to find the latest real business and financial news headlines from around the world using Google Search, then return them as structured JSON. Focus exclusively on business, finance, economics, markets, trade, corporate news, and economic policy. Always use Search Grounding to retrieve live results. Never fabricate headlines, URLs, or publication times. Only include articles published within the last 24 hours. If a source is behind a paywall, still include it but set "paywall": true.`;
 
 function buildUserPrompt(region) {
@@ -22,16 +18,12 @@ Prioritize stories from: Bloomberg, Reuters, Financial Times, Wall Street Journa
 Return only a valid JSON array with these exact fields: title, url, source, region, summary, time, paywall. No markdown, no explanation, just the raw JSON array starting with [ and ending with ].`;
 }
 
-export default async function handler(req) {
-  const { searchParams } = new URL(req.url);
-  const region = searchParams.get('region') || 'Global';
+export default async function handler(req, res) {
+  const region = req.query?.region || 'Global';
 
   const apiKey = process.env.GEMINI_API_KEY;
   if (!apiKey) {
-    return new Response(JSON.stringify({ error: 'Missing GEMINI_API_KEY' }), {
-      status: 500,
-      headers: { 'Content-Type': 'application/json' },
-    });
+    return res.status(500).json({ error: 'Missing GEMINI_API_KEY' });
   }
 
   try {
@@ -62,10 +54,7 @@ export default async function handler(req) {
     const data = await geminiRes.json();
 
     if (!geminiRes.ok) {
-      return new Response(JSON.stringify({ error: `Gemini error: ${data?.error?.message || 'Unknown'}` }), {
-        status: 500,
-        headers: { 'Content-Type': 'application/json' },
-      });
+      return res.status(500).json({ error: `Gemini error: ${data?.error?.message || 'Unknown'}` });
     }
 
     const raw = data?.candidates?.[0]?.content?.parts?.[0]?.text || '[]';
@@ -79,18 +68,11 @@ export default async function handler(req) {
       articles = match ? JSON.parse(match[0]) : [];
     }
 
-    return new Response(JSON.stringify(articles), {
-      status: 200,
-      headers: {
-        'Content-Type': 'application/json',
-        'Access-Control-Allow-Origin': '*',
-        'Cache-Control': 's-maxage=3600',
-      },
-    });
+    res.setHeader('Access-Control-Allow-Origin', '*');
+    res.setHeader('Cache-Control', 's-maxage=3600');
+    return res.status(200).json(articles);
+
   } catch (err) {
-    return new Response(JSON.stringify({ error: err.message }), {
-      status: 500,
-      headers: { 'Content-Type': 'application/json' },
-    });
+    return res.status(500).json({ error: err.message });
   }
 }
