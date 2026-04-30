@@ -4,34 +4,43 @@ export default async function handler(req, res) {
   const feeds = {
     Global: [
       { url: 'https://feeds.reuters.com/reuters/businessNews', source: 'Reuters' },
-      { url: 'https://feeds.reuters.com/reuters/topNews', source: 'Reuters' },
       { url: 'https://www.cnbc.com/id/10001147/device/rss/rss.html', source: 'CNBC' },
       { url: 'https://rss.nytimes.com/services/xml/rss/nyt/Business.xml', source: 'New York Times' },
-      { url: 'https://rsshub.app/apnews/topics/business', source: 'AP News' },
+      { url: 'https://feeds.apnews.com/rss/apf-business', source: 'AP News' },
+      { url: 'https://feeds.bloomberg.com/markets/news.rss', source: 'Bloomberg' },
+      { url: 'https://www.ft.com/rss/home/uk', source: 'Financial Times' },
     ],
     Asia: [
       { url: 'https://feeds.reuters.com/reuters/AsiaNews', source: 'Reuters Asia' },
       { url: 'https://www.cnbc.com/id/19832390/device/rss/rss.html', source: 'CNBC Asia' },
       { url: 'https://rss.nytimes.com/services/xml/rss/nyt/Business.xml', source: 'New York Times' },
-      { url: 'https://rsshub.app/apnews/topics/business', source: 'AP News' },
+      { url: 'https://feeds.apnews.com/rss/apf-business', source: 'AP News' },
+      { url: 'https://feeds.bloomberg.com/asia/news.rss', source: 'Bloomberg Asia' },
+      { url: 'https://www.ft.com/rss/home/asia-pacific', source: 'Financial Times' },
     ],
     Americas: [
       { url: 'https://feeds.reuters.com/reuters/americasNews', source: 'Reuters Americas' },
       { url: 'https://www.cnbc.com/id/10000664/device/rss/rss.html', source: 'CNBC US' },
       { url: 'https://rss.nytimes.com/services/xml/rss/nyt/Business.xml', source: 'New York Times' },
-      { url: 'https://rsshub.app/apnews/topics/business', source: 'AP News' },
+      { url: 'https://feeds.apnews.com/rss/apf-business', source: 'AP News' },
+      { url: 'https://feeds.bloomberg.com/markets/news.rss', source: 'Bloomberg' },
+      { url: 'https://www.ft.com/rss/home/us', source: 'Financial Times' },
     ],
     Europe: [
       { url: 'https://feeds.reuters.com/reuters/europeanNews', source: 'Reuters Europe' },
       { url: 'https://www.cnbc.com/id/19794221/device/rss/rss.html', source: 'CNBC Europe' },
       { url: 'https://rss.nytimes.com/services/xml/rss/nyt/Business.xml', source: 'New York Times' },
-      { url: 'https://rsshub.app/apnews/topics/business', source: 'AP News' },
+      { url: 'https://feeds.apnews.com/rss/apf-business', source: 'AP News' },
+      { url: 'https://feeds.bloomberg.com/europe/news.rss', source: 'Bloomberg Europe' },
+      { url: 'https://www.ft.com/rss/home/europe', source: 'Financial Times' },
     ],
     Africa: [
       { url: 'https://feeds.reuters.com/reuters/AfricaNews', source: 'Reuters Africa' },
       { url: 'https://allafrica.com/tools/headlines/rdf/business/headlines.rdf', source: 'AllAfrica Business' },
       { url: 'https://www.cnbc.com/id/10001147/device/rss/rss.html', source: 'CNBC' },
-      { url: 'https://rsshub.app/apnews/topics/business', source: 'AP News' },
+      { url: 'https://feeds.apnews.com/rss/apf-business', source: 'AP News' },
+      { url: 'https://feeds.bloomberg.com/africa/news.rss', source: 'Bloomberg Africa' },
+      { url: 'https://www.ft.com/rss/home/africa', source: 'Financial Times' },
     ],
   };
 
@@ -71,6 +80,11 @@ export default async function handler(req, res) {
           .trim()
           .slice(0, 120);
 
+        const isPaywall =
+          source === 'New York Times' ||
+          source.includes('Bloomberg') ||
+          source.includes('Financial Times');
+
         items.push({
           title: title.replace(/&amp;/g, '&').replace(/&lt;/g, '<').replace(/&gt;/g, '>').trim(),
           url: link.trim(),
@@ -78,7 +92,7 @@ export default async function handler(req, res) {
           region,
           summary: cleanDesc || 'Click to read the full story.',
           time: timeAgo,
-          paywall: source === 'New York Times',
+          paywall: isPaywall,
         });
       }
     }
@@ -101,8 +115,9 @@ export default async function handler(req, res) {
       .filter(r => r.status === 'fulfilled' && r.value.length > 0)
       .map(r => r.value);
 
+    // Take up to 2 articles per source targeting 12 total
     let articles = [];
-    const maxPerSource = 3;
+    const maxPerSource = 2;
     for (const sourceArticles of bySource) {
       articles.push(...sourceArticles.slice(0, maxPerSource));
     }
