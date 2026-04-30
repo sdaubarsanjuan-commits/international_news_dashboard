@@ -1,75 +1,112 @@
-const SYSTEM_PROMPT = `You are an international business news aggregator. Your job is to find the latest real business and financial news headlines from around the world using Google Search, then return them as structured JSON. Focus exclusively on business, finance, economics, markets, trade, corporate news, and economic policy. Always use Search Grounding to retrieve live results. Never fabricate headlines, URLs, or publication times. Only include articles published within the last 24 hours. If a source is behind a paywall, still include it but set "paywall": true.`;
-
-function buildUserPrompt(region) {
-  const regionFilter = region && region !== 'Global'
-    ? `Focus only on business and financial news from or about: ${region}. For Africa, prioritize stories about African stock exchanges, African trade, commodity exports, African Development Bank, regional economic communities, and major African corporations. Include sources like Business Day, African Business, Reuters Africa, Bloomberg Africa, and AllAfrica.`
-    : 'Include business and financial stories from all regions of the world.';
-
-  return `Find the 12 most important international BUSINESS and FINANCE news stories from the last 24 hours. Search Google News now. ${regionFilter}
-
-Only include stories about: stock markets, company earnings, mergers and acquisitions, trade deals, economic policy, central banks, interest rates, corporate leadership changes, major business deals, GDP and economic data, commodities, currencies, tech industry business news, energy markets, and financial regulation.
-
-Do NOT include general politics, sports, entertainment, or non-business news.
-
-For each story return the real headline, the actual article URL, the publisher name (Bloomberg, Reuters, Financial Times, Wall Street Journal, AP, BBC Business, CNBC, Forbes, The Guardian Business, or Nikkei), the region it belongs to (Global, Asia, Americas, Europe, or Africa), a one sentence business-focused summary under 20 words, how long ago it was published, and whether it has a paywall.
-
-Prioritize stories from: Bloomberg, Reuters, Financial Times, Wall Street Journal, CNBC, AP Business, BBC Business, Forbes, Nikkei Asia, and South China Morning Post Business.
-
-Return only a valid JSON array with these exact fields: title, url, source, region, summary, time, paywall. No markdown, no explanation, just the raw JSON array starting with [ and ending with ].`;
-}
-
 export default async function handler(req, res) {
   const region = req.query?.region || 'Global';
 
-  const apiKey = process.env.GEMINI_API_KEY;
-  if (!apiKey) {
-    return res.status(500).json({ error: 'Missing GEMINI_API_KEY' });
+  // Free RSS feeds by region - all real, active sources
+  const feeds = {
+    Global: [
+      { url: 'https://feeds.reuters.com/reuters/businessNews', source: 'Reuters' },
+      { url: 'https://feeds.bbci.co.uk/news/business/rss.xml', source: 'BBC Business' },
+      { url: 'https://www.cnbc.com/id/10001147/device/rss/rss.html', source: 'CNBC' },
+      { url: 'https://feeds.a.dj.com/rss/RSSWorldNews.xml', source: 'Wall Street Journal' },
+      { url: 'https://rss.app/feeds/AP-business.xml', source: 'AP Business' },
+    ],
+    Asia: [
+      { url: 'https://feeds.reuters.com/reuters/AsiaNews', source: 'Reuters Asia' },
+      { url: 'https://feeds.bbci.co.uk/news/world/asia/rss.xml', source: 'BBC Asia' },
+      { url: 'https://www.cnbc.com/id/19832390/device/rss/rss.html', source: 'CNBC Asia' },
+    ],
+    Americas: [
+      { url: 'https://feeds.reuters.com/reuters/americasNews', source: 'Reuters Americas' },
+      { url: 'https://www.cnbc.com/id/10000664/device/rss/rss.html', source: 'CNBC US' },
+      { url: 'https://feeds.bbci.co.uk/news/world/us_and_canada/rss.xml', source: 'BBC Americas' },
+    ],
+    Europe: [
+      { url: 'https://feeds.reuters.com/reuters/europeanNews', source: 'Reuters Europe' },
+      { url: 'https://feeds.bbci.co.uk/news/world/europe/rss.xml', source: 'BBC Europe' },
+      { url: 'https://www.cnbc.com/id/19794221/device/rss/rss.html', source: 'CNBC Europe' },
+    ],
+    Africa: [
+      { url: 'https://feeds.reuters.com/reuters/AfricaNews', source: 'Reuters Africa' },
+      { url: 'https://feeds.bbci.co.uk/news/world/africa/rss.xml', source: 'BBC Africa' },
+      { url: 'https://allafrica.com/tools/headlines/rdf/business/headlines.rdf', source: 'AllAfrica Business' },
+    ],
+  };
+
+  const selectedFeeds = feeds[region] || feeds.Global;
+
+  function parseRSS(xml, source) {
+    const items = [];
+    const itemMatches = xml.matchAll(/<item>([\s\S]*?)<\/item>/g);
+    for (const match of itemMatches) {
+      const item = match[1];
+      const title = item.match(/<title><!\[CDATA\[(.*?)\]\]><\/title>/)
+        ?.[1] || item.match(/<title>(.*?)<\/title>/)?.[1] || '';
+      const link = item.match(/<link>(.*?)<\/link>/)?.[1]
+        || item.match(/<guid[^>]*>(https?:\/\/[^<]+)<\/guid>/)?.[1] || '';
+      const description = item.match(/<description><!\[CDATA\[(.*?)\]\]><\/description>/)
+        ?.[1] || item.match(/<description>(.*?)<\/description>/)?.[1] || '';
+      const pubDate = item.match(/<pubDate>(.*?)<\/pubDate>/)?.[1] || '';
+
+      if (title && link && link.startsWith('http')) {
+        // Calculate time ago
+        let timeAgo = 'Recently';
+        if (pubDate) {
+          const diff = Date.now() - new Date(pubDate).getTime();
+          const hours = Math.floor(diff / 3600000);
+          const mins = Math.floor(diff / 60000);
+          if (hours >= 24) timeAgo = `${Math.floor(hours / 24)} days ago`;
+          else if (hours >= 1) timeAgo = `${hours} hour${hours > 1 ? 's' : ''} ago`;
+          else timeAgo = `${mins} minute${mins > 1 ? 's' : ''} ago`;
+        }
+
+        // Clean up description
+        const cleanDesc = description
+          .replace(/<[^>]+>/g, '')
+          .replace(/&amp;/g, '&')
+          .replace(/&lt;/g, '<')
+          .replace(/&gt;/g, '>')
+          .replace(/&quot;/g, '"')
+          .replace(/&#39;/g, "'")
+          .trim()
+          .slice(0, 120);
+
+        items.push({
+          title: title.replace(/&amp;/g, '&').replace(/&lt;/g, '<').replace(/&gt;/g, '>').trim(),
+          url: link.trim(),
+          source,
+          region,
+          summary: cleanDesc || 'Click to read the full story.',
+          time: timeAgo,
+          paywall: source.includes('Wall Street Journal') || source.includes('Financial Times'),
+        });
+      }
+    }
+    return items;
   }
 
   try {
-    const geminiRes = await fetch(
-      `https://generativelanguage.googleapis.com/v1beta/models/gemini-1.5-flash:generateContent?key=${apiKey}`,
-      {
-        method: 'POST',
-        headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({
-          systemInstruction: {
-            parts: [{ text: SYSTEM_PROMPT }],
-          },
-          contents: [
-            {
-              role: 'user',
-              parts: [{ text: buildUserPrompt(region) }],
-            },
-          ],
-          tools: [{ googleSearch: {} }],
-          generationConfig: {
-            temperature: 0.1,
-            maxOutputTokens: 2048,
-          },
-        }),
-      }
+    const results = await Promise.allSettled(
+      selectedFeeds.map(({ url, source }) =>
+        fetch(url, {
+          headers: { 'User-Agent': 'Mozilla/5.0 (compatible; NewsBot/1.0)' },
+          signal: AbortSignal.timeout(8000),
+        })
+          .then(r => r.text())
+          .then(xml => parseRSS(xml, source))
+      )
     );
 
-    const data = await geminiRes.json();
+    let articles = results
+      .filter(r => r.status === 'fulfilled')
+      .flatMap(r => r.value)
+      .slice(0, 12);
 
-    if (!geminiRes.ok) {
-      return res.status(500).json({ error: `Gemini error: ${data?.error?.message || 'Unknown'}` });
-    }
-
-    const raw = data?.candidates?.[0]?.content?.parts?.[0]?.text || '[]';
-    const clean = raw.replace(/```json|```/g, '').trim();
-
-    let articles;
-    try {
-      articles = JSON.parse(clean);
-    } catch {
-      const match = clean.match(/\[[\s\S]*\]/);
-      articles = match ? JSON.parse(match[0]) : [];
+    if (articles.length === 0) {
+      return res.status(500).json({ error: 'No articles found from RSS feeds' });
     }
 
     res.setHeader('Access-Control-Allow-Origin', '*');
-    res.setHeader('Cache-Control', 's-maxage=3600');
+    res.setHeader('Cache-Control', 's-maxage=1800');
     return res.status(200).json(articles);
 
   } catch (err) {
