@@ -179,7 +179,7 @@ export default function App() {
               color: '#ffffff',
               letterSpacing: '-0.01em',
             }}>
-              Business Report
+              International Business Report
             </h1>
             <span style={{
               fontSize: '10px',
