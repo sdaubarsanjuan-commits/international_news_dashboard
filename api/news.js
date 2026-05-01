@@ -38,9 +38,9 @@ export default async function handler(req, res) {
       { url: 'https://feeds.reuters.com/reuters/AfricaNews', source: 'Reuters' },
       { url: 'https://allafrica.com/tools/headlines/rdf/business/headlines.rdf', source: 'AllAfrica Business' },
       { url: 'https://feeds.apnews.com/rss/apf-africa', source: 'AP News' },
-      { url: 'https://www.cnbc.com/id/10001147/device/rss/rss.html', source: 'CNBC' },
-      { url: 'https://www.cnbc.com/id/19832390/device/rss/rss.html', source: 'CNBC' },
       { url: 'https://allafrica.com/tools/headlines/rdf/economy/headlines.rdf', source: 'AllAfrica Economy' },
+      { url: 'https://allafrica.com/tools/headlines/rdf/finance/headlines.rdf', source: 'AllAfrica Finance' },
+      { url: 'https://allafrica.com/tools/headlines/rdf/industry/headlines.rdf', source: 'AllAfrica Industry' },
     ],
   };
 
@@ -50,7 +50,7 @@ export default async function handler(req, res) {
     Asia: ['asia', 'china', 'japan', 'korea', 'india', 'singapore', 'hong kong', 'taiwan', 'indonesia', 'thailand', 'vietnam', 'malaysia', 'philippines', 'pacific', 'tokyo', 'beijing', 'shanghai', 'asian', 'nikkei', 'yen', 'yuan', 'rupee', 'kospi'],
     Americas: ['us', 'usa', 'america', 'canada', 'brazil', 'mexico', 'latin', 'wall street', 'federal reserve', 'nasdaq', 'dow', 'new york', 'washington', 'tariff', 's&p', 'dollar', 'treasury', 'sec', 'fed'],
     Europe: ['europe', 'european', 'eu', 'uk', 'britain', 'france', 'germany', 'italy', 'spain', 'london', 'paris', 'berlin', 'ecb', 'euro', 'brexit', 'brussels', 'pound', 'ftse', 'dax', 'dutch', 'swiss', 'nordic'],
-    Africa: ['africa', 'african', 'nigeria', 'kenya', 'south africa', 'ghana', 'ethiopia', 'egypt', 'morocco', 'tanzania', 'uganda', 'zimbabwe', 'nairobi', 'lagos', 'cairo', 'rand', 'naira', 'johannesburg'],
+    Africa: ['africa', 'african', 'nigeria', 'kenya', 'south africa', 'ghana', 'ethiopia', 'egypt', 'morocco', 'tanzania', 'uganda', 'zimbabwe', 'nairobi', 'lagos', 'cairo', 'rand', 'naira', 'johannesburg', 'angola', 'mozambique', 'rwanda', 'senegal', 'ivory coast', 'cameroon', 'botswana', 'zambia', 'mali', 'niger', 'sudan', 'tunisia', 'algeria', 'libya', 'sub-saharan', 'east africa', 'west africa', 'southern africa'],
   };
 
   function isRegionRelevant(title, summary, region) {
